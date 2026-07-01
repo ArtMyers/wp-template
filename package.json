@@ -1,0 +1,16 @@
+{
+  "name": "/app",
+  "scripts": {
+    "dev": "bunx --bun vite"
+  },
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest",
+    "vite": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

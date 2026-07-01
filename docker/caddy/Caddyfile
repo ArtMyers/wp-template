@@ -1,0 +1,24 @@
+{
+	frankenphp
+	order php_server before file_server
+
+	# Disable admin API
+	admin off
+}
+
+:80 {
+	root * /app/public
+
+	# Compress responses
+	encode zstd gzip
+
+	# Disable browser cache for static assets (dev mode)
+	@static path *.css *.js *.png *.jpg *.jpeg *.gif *.svg *.webp *.woff *.woff2 *.ttf *.ico
+	header @static Cache-Control "no-store, no-cache, must-revalidate"
+
+	# PHP via FrankenPHP (embedded mode)
+	php_server
+
+	# Static files
+	file_server
+}

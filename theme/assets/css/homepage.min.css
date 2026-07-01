@@ -1,0 +1,21 @@
+.reset {
+    color: red;
+}
+.font {
+    font-size: 1rem;
+}
+.global {
+    color: green;
+    background-color: yellow;
+}
+.header {
+    color: aliceblue;
+    font-size: 10px;
+    font-family: 'Courier New', Courier, monospace;
+}
+.homepage {
+    font-style: italic;
+}
+.footer {
+    color: red;
+}
