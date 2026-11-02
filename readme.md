@@ -49,7 +49,8 @@ Ports are bound to `127.0.0.1` only, so the site is not reachable from the local
 │   ├── bundles.js            # CSS bundles: output file + ordered list of sources
 │   ├── concat.js             # Concatenation + Lightning CSS minification
 │   ├── concat-plugin.js      # Vite plugin: rebuild bundles on change (dev)
-│   └── build.js              # Production build (minified)
+│   ├── build.js              # Production build (minified)
+│   └── theme-name.js         # Renames theme prefixes after THEME_NAME
 ├── data/                     # Local data, git-ignored (created on first run)
 │   ├── wordpress/            # WordPress core, wp-config.php, uploads, debug.log
 │   └── mysql/                # MySQL data directory
@@ -88,7 +89,26 @@ WP_ADMIN_PASSWORD=admin
 WP_ADMIN_EMAIL=admin@example.com
 PLUGIN_FOLDER_NAME=custom-core-plugin   # Plugin directory name inside wp-content/plugins
 THEME_FOLDER_NAME=custom-theme          # Theme directory name inside wp-content/themes
+THEME_NAME=Custom Theme                 # Theme name, see "Theme Name" below
 ```
+
+## Theme Name
+
+`vite/theme-name.js` renames the theme after `THEME_NAME`. It reads the current name from the
+`Theme Name:` header in `theme/style.css` and replaces every derived identifier in the theme's
+`*.php`, `*.css` and `*.js` files (`assets/libs/` and `*.min.css` are skipped):
+
+| `Custom Theme` → `My Shop` | Where                                  |
+|----------------------------|----------------------------------------|
+| `My Shop`                  | `Theme Name:` header                   |
+| `my-shop`                  | Text domain, style/script handles      |
+| `my_shop`                  | Function prefix (`my_shop_asset_version`) |
+| `MY_SHOP`                  | Constant prefix (`MY_SHOP_DIR`)        |
+
+It runs automatically before `bun run dev` and `bun run build` (does nothing if the name is
+unchanged), or manually: `docker compose exec bun bun run theme-name`. Restart the `bun` service
+after editing `.env`. Write new code with the current prefixes so it gets renamed too, and pick
+a distinctive name: a single common word (e.g. `Main`) would also match unrelated text.
 
 ## What Happens on First Run
 

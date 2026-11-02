@@ -3,8 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bunx --bun vite",
-    "build": "bun vite/build.js"
+    "theme-name": "bun vite/theme-name.js",
+    "dev": "bun vite/theme-name.js && bunx --bun vite",
+    "build": "bun vite/theme-name.js && bun vite/build.js"
   },
   "devDependencies": {
     "lightningcss": "^1.32.0",

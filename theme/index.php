@@ -21,7 +21,7 @@ if ( have_posts() ) :
 	the_posts_pagination();
 else :
 	?>
-	<p><?php esc_html_e( 'Nothing found.', 'custom-theme' ); ?></p>
+	<p><?php esc_html_e( 'Nothing found.', 'myers-theme' ); ?></p>
 	<?php
 endif;
 
