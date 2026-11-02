@@ -1,4 +1,8 @@
-FROM dunglas/frankenphp:latest-php8.3-bookworm
+FROM dunglas/frankenphp:1-php8.3-bookworm
+
+ARG HOST_UID=1000
+ARG HOST_GID=1000
+ARG WP_CLI_VERSION=2.12.0
 
 # System dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -6,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     unzip \
     rsync \
+    libcap2-bin \
     libzip-dev \
     libicu-dev \
     libonig-dev \
@@ -25,14 +30,12 @@ RUN install-php-extensions \
         gd \
         exif
 
-
-
 # Install WP-CLI
-RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
-    && chmod +x wp-cli.phar \
-    && mv wp-cli.phar /usr/local/bin/wp
+RUN curl -fsSL -o /usr/local/bin/wp \
+        https://github.com/wp-cli/wp-cli/releases/download/v${WP_CLI_VERSION}/wp-cli-${WP_CLI_VERSION}.phar \
+    && chmod +x /usr/local/bin/wp
 
-# Disable default healthcheck if admin API is off
+# FrankenPHP image has no healthcheck endpoint with admin API off
 HEALTHCHECK NONE
 
 # ── OPcache config (dev-optimized) ──────────────────────────────────
@@ -55,10 +58,21 @@ realpath_cache_size=4096K\n\
 realpath_cache_ttl=600\n\
 memory_limit=512M\n\
 max_execution_time=60\n\
+upload_max_filesize=64M\n\
+post_max_size=64M\n\
 ' > /usr/local/etc/php/conf.d/performance.ini
 
 # Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# ── Non-root user matching the host UID/GID ─────────────────────────
+# Files created by WordPress in bind mounts (data/wordpress, theme/, plugin/) belong to the host user.
+# The entrypoint starts as root, fixes ownership of mount points, then drops to this user.
+RUN groupadd -g ${HOST_GID} app \
+    && useradd -m -u ${HOST_UID} -g ${HOST_GID} -s /bin/bash app \
+    && setcap CAP_NET_BIND_SERVICE=+eip /usr/local/bin/frankenphp \
+    && mkdir -p /app/public \
+    && chown -R app:app /app /config/caddy /data/caddy
 
 WORKDIR /app
 

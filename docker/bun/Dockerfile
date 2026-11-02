@@ -1,5 +1,3 @@
-FROM oven/bun:alpine
-
-RUN bun install -g vite
+FROM oven/bun:1-alpine
 
 WORKDIR /app

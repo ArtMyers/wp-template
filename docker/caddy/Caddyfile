@@ -1,6 +1,5 @@
 {
 	frankenphp
-	order php_server before file_server
 
 	# Disable admin API
 	admin off
@@ -16,9 +15,6 @@
 	@static path *.css *.js *.png *.jpg *.jpeg *.gif *.svg *.webp *.woff *.woff2 *.ttf *.ico
 	header @static Cache-Control "no-store, no-cache, must-revalidate"
 
-	# PHP via FrankenPHP (embedded mode)
+	# PHP via FrankenPHP (embedded mode); also serves static files
 	php_server
-
-	# Static files
-	file_server
 }

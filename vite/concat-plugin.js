@@ -1,77 +1,17 @@
 import { resolve, relative } from 'path';
+import { buildAll } from './concat.js';
 
 /**
- * Vite plugin for concatenating files in a specified order.
- * Uses Bun's native file API.
+ * Vite plugin that concatenates files in a specified order
+ * and rebuilds affected bundles when a source file changes.
  *
  * @param {Object} options
- * @param {Array<Object>} options.bundles - Array of bundle configurations.
- *   Each bundle is an object:
- *   {
- *     output: string,    // Output file path (relative to project root)
- *     files: string[],   // Input files in order (relative to project root)
- *     separator: string,  // Optional separator between files (default: '\n')
- *   }
- *
- * @example
- * concatPlugin({
- *   bundles: [
- *     {
- *       output: 'theme/assets/css/homepage.min.css',
- *       files: [
- *         'theme/assets/css/pages/parts/reset.css',
- *         'theme/assets/css/pages/parts/fonts.css',
- *         'theme/assets/css/pages/parts/global.css',
- *         'theme/assets/css/pages/parts/header.css',
- *         'theme/assets/css/pages/parts/footer.css',
- *         'theme/assets/css/pages/homepage.css',
- *       ],
- *     },
- *   ],
- * })
+ * @param {Array<Object>} options.bundles - Bundle configs, see vite/bundles.js
+ * @param {boolean} [options.minify]      - Minify output (default: false in dev)
  */
 export default function concatPlugin(options = {}) {
-  const { bundles = [] } = options;
+  const { bundles = [], minify = false } = options;
   let root = '';
-
-  /**
-   * Resolve a path relative to the project root.
-   */
-  function resolvePath(filePath) {
-    return resolve(root, filePath);
-  }
-
-  /**
-   * Concatenate files for a single bundle and write the output.
-   */
-  async function buildBundle(bundle) {
-    const { output, files, separator = '\n' } = bundle;
-    const outputPath = resolvePath(output);
-
-    const contents = await Promise.all(
-      files.map(async (file) => {
-        const bunFile = Bun.file(resolvePath(file));
-        if (!(await bunFile.exists())) {
-          console.warn(`[concat-plugin] File not found: ${file}`);
-          return `/* File not found: ${file} */`;
-        }
-        return bunFile.text();
-      })
-    );
-
-    const result = contents.join(separator);
-
-    // Bun.write automatically creates parent directories
-    await Bun.write(outputPath, result);
-    console.log(`[concat-plugin] Built: ${output} (${files.length} files)`);
-  }
-
-  /**
-   * Build all bundles.
-   */
-  async function buildAll() {
-    await Promise.all(bundles.map(buildBundle));
-  }
 
   /**
    * Find which bundles contain a given file path.
@@ -92,42 +32,34 @@ export default function concatPlugin(options = {}) {
 
     // Build all bundles on server start
     async buildStart() {
-      await buildAll();
+      await buildAll(bundles, root, { minify });
     },
 
     // Watch source files and rebuild affected bundles on change
     configureServer(server) {
-      // Collect all output paths to exclude from triggering rebuilds
-      const outputPaths = new Set(
-        bundles.map((b) => resolvePath(b.output))
-      );
+      const outputPaths = new Set(bundles.map((b) => resolve(root, b.output)));
 
-      // Collect all input files to watch
-      const watchedFiles = new Set();
       for (const bundle of bundles) {
         for (const file of bundle.files) {
-          watchedFiles.add(resolvePath(file));
+          server.watcher.add(resolve(root, file));
         }
       }
 
-      // Add files to watcher
-      for (const file of watchedFiles) {
-        server.watcher.add(file);
+      // 'add' / 'unlink' cover files created or deleted after start
+      for (const event of ['change', 'add', 'unlink']) {
+        server.watcher.on(event, (changedFile) => {
+          const normalized = resolve(changedFile);
+
+          // Skip if the changed file is an output file
+          if (outputPaths.has(normalized)) return;
+
+          const affected = findAffectedBundles(normalized);
+          if (affected.length === 0) return;
+
+          console.log(`[concat] ${event}: ${relative(root, normalized)}`);
+          buildAll(affected, root, { minify });
+        });
       }
-
-      server.watcher.on('change', (changedFile) => {
-        const normalized = resolve(changedFile);
-
-        // Skip if the changed file is an output file
-        if (outputPaths.has(normalized)) return;
-
-        const affected = findAffectedBundles(normalized);
-
-        if (affected.length > 0) {
-          console.log(`[concat-plugin] Change detected: ${relative(root, normalized)}`);
-          Promise.all(affected.map(buildBundle));
-        }
-      });
     },
   };
 }

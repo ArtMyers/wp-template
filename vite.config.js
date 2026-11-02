@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite';
 import concatPlugin from './vite/concat-plugin.js';
+import bundles from './vite/bundles.js';
 
+// Dev only: `bun run dev` watches sources and writes unminified bundles.
+// Production bundles: `bun run build` (minified, see vite/build.js).
 export default defineConfig({
   server: {
     watch: {
@@ -8,31 +11,5 @@ export default defineConfig({
       interval: 500,
     },
   },
-  plugins: [
-    concatPlugin({
-      bundles: [
-        {
-          output: 'theme/assets/css/homepage.min.css',
-          files: [
-            'theme/assets/css/pages/parts/reset.css',
-            'theme/assets/css/pages/parts/fonts.css',
-            'theme/assets/css/pages/parts/global.css',
-            'theme/assets/css/pages/parts/header.css',
-            'theme/assets/css/pages/homepage.css',
-            'theme/assets/css/pages/parts/footer.css',
-          ],
-        },
-        // Add more bundles as needed:
-        // {
-        //   output: 'theme/assets/css/dist/about.css',
-        //   files: [
-        //     'theme/assets/css/pages/parts/reset.css',
-        //     'theme/assets/css/pages/parts/fonts.css',
-        //     'theme/assets/css/pages/parts/global.css',
-        //     'theme/assets/css/pages/about.css',
-        //   ],
-        // },
-      ],
-    }),
-  ],
+  plugins: [concatPlugin({ bundles })],
 });
